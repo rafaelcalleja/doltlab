@@ -2,3 +2,5 @@
 iter_token.keys
 envoy.yaml
 .idea
+.dolt
+.sqlhistory

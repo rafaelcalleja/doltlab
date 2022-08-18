@@ -100,6 +100,7 @@ services:
       -emailTrace "${EMAIL_TRACE}"
       -emailOauthToken "${EMAIL_OAUTH_TOKEN}"
       -emailClientHostname "${EMAIL_CLIENT_HOSTNAME}"
+      -emailImplicitTLS
       -defaultUser "${DEFAULT_USER}"
       -defaultUserPassword "${DEFAULT_USER_PASSWORD}"
       -defaultUserEmail "${DEFAULT_USER_EMAIL}"
@@ -143,14 +144,33 @@ services:
       STRIPE_API_KEY: "does_not_work"
       HOST_IP: "${HOST_IP:?required HOST_IP environment}"
       INTERNAL_GRAPHQLAPI_URL: "http://doltlabenvoy:10080/graphql"
-      EVENTSAPI_URL: "https://eventsapi.dolthub.com"
-      DOLTHUB_METRICS_ENABLED: "true"
+      #EVENTSAPI_URL: "https://eventsapi.dolthub.com"
+      #DOLTHUB_METRICS_ENABLED: "true"
+      #SHOW_GATED_FEATURES: "true"
+      GITHUB_OAUTH_CLIENT_ID: "8fe0b5b336243ae46817"
+      GITHUB_OAUTH_CLIENT_SECRET: "fe642c008842114ce4942892c3014d8244fd5b27"
     networks:
       - doltlab
+    restart: always
+  doltsqlserver:
+    build:
+      context: .
+      args:
+        VERSION: ${IMG_TAG:?Required IMG_TAG env variable}
+      dockerfile: Dockerfile
+    restart: always
+    command: sql-server --config /etc/mysql/sql-server.cnf
+    ports:
+      - '${MYSQL_SERVER:-3306}:3306'
+    volumes:
+      - dolt-sql-server:/home/test
+      - ./sql-server.cnf:/etc/mysql/sql-server.cnf
+    working_dir: /home/test
 networks:
     doltlab:
 volumes:
   doltlab-remote-storage: {}
   doltlabdb-data: {}
   doltlab-user-uploads: {}
+  dolt-sql-server: {}
 

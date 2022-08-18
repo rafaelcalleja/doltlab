@@ -2,9 +2,14 @@ CURRENT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 ENV_FILE ?= .env.local
 DOCKER_COMPOSE := ENV_FILE=$(CURRENT_DIR)$(ENV_FILE) docker-compose --env-file $(CURRENT_DIR)$(ENV_FILE)
+MYSQL_SERVER ?= 3306
 
 include $(ENV_FILE)
 export
+
+IMG_REPO ?= rafaelcalleja
+IMG_TAG ?= v0.40.27
+IMG_NAME ?= dolt
 
 .PHONY: all
 all: build
@@ -42,3 +47,11 @@ create_envoy_config:
 
 create_token_keys:
 	@test -f iter_token.keys || chmod +x ./gentokenenckey; ./gentokenenckey > iter_token.keys
+
+image:
+	docker build -t $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG) -f Dockerfile \
+	--build-arg VERSION=$(IMG_TAG) \
+	.
+push:
+	docker push $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG)
+
