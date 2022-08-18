@@ -1,0 +1,154 @@
+
+
+version: "3.9"  # optional since v1.27.0
+services:
+  doltlabdb:
+    image: public.ecr.aws/dolthub/doltlab/postgres-server:v0.5.7
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      DOLTHUBAPI_PASSWORD: "${DOLTHUBAPI_PASSWORD}"
+    networks:
+      - doltlab
+    volumes:
+      - doltlabdb-data:/var/lib/postgresql/data
+  doltlabenvoy:
+     image: envoyproxy/envoy-alpine:v1.18-latest
+     command:
+       -c /envoy.yaml
+     ports:
+       - "80:80"
+       - "4321:4321"
+       - "7770:7770"
+     networks:
+       - doltlab
+     volumes:
+       - ${PWD}/envoy.yaml:/envoy.yaml
+  doltlabfileserviceapi:
+     depends_on:
+        - doltlabenvoy
+     image: public.ecr.aws/dolthub/doltlab/fileserviceapi-server:v0.5.7
+     command:
+       -outboundInternalServiceEndpointHost doltlabenvoy
+       -iterTokenEncKeysFile /iter_token.keys
+       -iterTokenDecKeysFile /iter_token.keys
+       -dir /doltlab-user-uploads
+       -doltlab
+     environment:
+       BUILD_SCM_REVISION: doltlabfileserviceapi-v0.5.7
+     networks:
+       - doltlab
+     volumes:
+       - ${PWD}/iter_token.keys:/iter_token.keys
+       - doltlab-user-uploads:/doltlab-user-uploads
+  doltlabremoteapi:
+    depends_on:
+      - doltlabdb
+      - doltlabenvoy
+      - doltlabfileserviceapi
+    image: public.ecr.aws/dolthub/doltlab/doltremoteapi-server:v0.5.7
+    command:
+      -http-host "${HOST_IP}:100"
+      -http-port "100"
+      -outboundInternalServiceEndpointHost doltlabenvoy
+      -backingStoreHostNameOverrideKey "${HOST_IP}:100"
+      -backingStoreHostNameOverrideValue "doltlabremoteapi:100"
+      -backing-store local
+      -dir /doltlab-remote-storage
+      -metricsHost "eventsapi.dolthub.com"
+      -doltlab
+    ports:
+      - "50051:50051"
+      - "100:100"
+    environment:
+      BUILD_SCM_REVISION: doltlabremoteapi-v0.5.7
+    networks:
+      - doltlab
+    volumes:
+      - doltlab-remote-storage:/doltlab-remote-storage
+  doltlabapi:
+    depends_on:
+      - doltlabdb
+      - doltlabenvoy
+      - doltlabremoteapi
+      - doltlabfileserviceapi
+    image: public.ecr.aws/dolthub/doltlab/dolthubapi-server:v0.5.7
+    command:
+      -doltlab
+      -outboundInternalServiceEndpointHost doltlabenvoy
+      -iterTokenEncKeysFile /iter_token.keys
+      -iterTokenDecKeysFile /iter_token.keys
+      -postgres
+      -processAsyncTasks
+      -dolthubWhitelistAllowAll
+      -port 60051
+      -pghost doltlabdb
+      -userImportUploadsFileServiceBrowserHost "http://${HOST_IP}:4321"
+      -userImportUploadsFileServiceServerHost "http://doltlabenvoy:4321"
+      -remoteApiHostNameOverrideKey "${HOST_IP}:100"
+      -remoteApiHostNameOverrideValue "doltlabremoteapi:100"
+      -noReplyEmail "${NO_REPLY_EMAIL}"
+      -websiteURL "http://${HOST_IP}"
+      -emailAuthMethod "${EMAIL_AUTH_METHOD}"
+      -emailHost "${EMAIL_HOST}"
+      -emailPort "${EMAIL_PORT}"
+      -emailUsername "${EMAIL_USERNAME}"
+      -emailPassword "${EMAIL_PASSWORD}"
+      -emailIdentity "${EMAIL_IDENTITY}"
+      -emailTrace "${EMAIL_TRACE}"
+      -emailOauthToken "${EMAIL_OAUTH_TOKEN}"
+      -emailClientHostname "${EMAIL_CLIENT_HOSTNAME}"
+      -defaultUser "${DEFAULT_USER}"
+      -defaultUserPassword "${DEFAULT_USER_PASSWORD}"
+      -defaultUserEmail "${DEFAULT_USER_EMAIL}"
+      -metricsHost "eventsapi.dolthub.com"
+      -migrateUp
+    networks:
+      - doltlab
+    environment:
+      BUILD_SCM_REVISION: doltlab-dolthubapi-v0.5.7
+      MAILCHIMP_LIST_ID: does_not_work
+      MAILCHIMP_API_KEY: does_not_work
+      STRIPE_API_KEY: does_not_work
+      DOLTHUBAPI_PASSWORD: "${DOLTHUBAPI_PASSWORD}"
+    volumes:
+      - ${PWD}/iter_token.keys:/iter_token.keys
+  doltlabgraphql:
+    depends_on:
+      - doltlabdb
+      - doltlabenvoy
+      - doltlabremoteapi
+      - doltlabapi
+      - doltlabfileserviceapi
+    image: public.ecr.aws/dolthub/doltlab/dolthubapi-graphql-server:v0.5.7
+    networks:
+      - doltlab
+    environment:
+      DOLTHUBAPI_URL: http://doltlabenvoy:9443
+      NODE_ENV: development
+  doltlabui:
+    depends_on:
+      - doltlabdb
+      - doltlabenvoy
+      - doltlabremoteapi
+      - doltlabapi
+      - doltlabgraphql
+      - doltlabfileserviceapi
+    image: public.ecr.aws/dolthub/doltlab/dolthub-server:v0.5.7
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=16384"
+      DOLTHUB_VERSION: "doltlab-v0.5.7"
+      STRIPE_API_KEY: "does_not_work"
+      HOST_IP: "${HOST_IP}"
+      INTERNAL_GRAPHQLAPI_URL: "http://doltlabenvoy:10080/graphql"
+      EVENTSAPI_URL: "https://eventsapi.dolthub.com"
+      DOLTHUB_METRICS_ENABLED: "true"
+    networks:
+      - doltlab
+networks:
+    doltlab:
+volumes:
+  doltlab-remote-storage: {}
+  doltlabdb-data: {}
+  doltlab-user-uploads: {}
+
