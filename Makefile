@@ -58,6 +58,7 @@ image:
 push:
 	docker push $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG)
 
-download:
+upgrade:
 	curl -L $(RELEASE_URL) -o doltlab-latest.zip
 	unzip -o doltlab-latest.zip -d .
+	rm doltlab-latest.zip
