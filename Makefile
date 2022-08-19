@@ -27,7 +27,7 @@ deps: create_envoy_config create_token_keys
 
 .PHONY: start
 start:
-	@APP_ENV=$(APP_ENV) $(DOCKER_COMPOSE) up -d
+	@$(DOCKER_COMPOSE) up -d
 
 .PHONY: stop
 stop:
