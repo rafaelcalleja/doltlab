@@ -147,8 +147,6 @@ services:
       #EVENTSAPI_URL: "https://eventsapi.dolthub.com"
       #DOLTHUB_METRICS_ENABLED: "true"
       #SHOW_GATED_FEATURES: "true"
-      GITHUB_OAUTH_CLIENT_ID: "8fe0b5b336243ae46817"
-      GITHUB_OAUTH_CLIENT_SECRET: "fe642c008842114ce4942892c3014d8244fd5b27"
     networks:
       - doltlab
     restart: always
