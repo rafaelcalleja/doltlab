@@ -483,7 +483,7 @@ INSERT INTO email_whitelist_elements (email_address, updated_at, created_at) VAL
 
 <h1 id="use-external-postgres">Use an external PostgreSQL server with DoltLab</h1>
 
-To connect an external PostgreSQL server to DoltLab, in DoltLab's `docker-compose.yaml`, supply the host and port for the external server to `doltlabapi`'s `-pghost` and `-pgport` arguments.
+You can connect a DoltLab instance to an external PostgreSQL server version `13` or later. To connect, in DoltLab's `docker-compose.yaml`, supply the host and port for the external server to `doltlabapi`'s `-pghost` and `-pgport` arguments.
 
 ```yaml
   doltlabapi:
@@ -500,11 +500,11 @@ You can also remove the `doltlabdb` section and all references to it in the `doc
 Before (re)starting DoltLab with this change, you will also need to execute the following statements in your external PostgreSQL server:
 
 ```sql
-CREATE ROLE dolthubadmin WITH LOGIN PASSWORD '$DOLTHUBAPI_PASSWORD';
+CREATE ROLE dolthubapi WITH LOGIN PASSWORD '$DOLTHUBAPI_PASSWORD';
 CREATE DATABASE dolthubapi;
-GRANT ALL PRIVILEGES ON DATABASE dolthubapi TO dolthubadmin;
+GRANT ALL PRIVILEGES ON DATABASE dolthubapi TO dolthubapi;
 CREATE EXTENSION citext SCHEMA public;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO dolthubadmin;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO dolthubapi;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO dolthubadmin;
 ```
 

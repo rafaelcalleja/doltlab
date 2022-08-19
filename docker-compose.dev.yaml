@@ -1,0 +1,63 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  doltlabdb:
+    restart: always
+  doltlabfileserviceapi:
+    restart: always
+  doltlabremoteapi:
+    restart: always
+  doltlabapi:
+    command:
+      -doltlab
+      -outboundInternalServiceEndpointHost doltlabenvoy
+      -iterTokenEncKeysFile /iter_token.keys
+      -iterTokenDecKeysFile /iter_token.keys
+      -postgres
+      -processAsyncTasks
+      -dolthubWhitelistAllowAll
+      -port 60051
+      -pghost doltlabdb
+      -userImportUploadsFileServiceBrowserHost "http://${HOST_IP}:4321"
+      -userImportUploadsFileServiceServerHost "http://doltlabenvoy:4321"
+      -remoteApiHostNameOverrideKey "${HOST_IP}:100"
+      -remoteApiHostNameOverrideValue "doltlabremoteapi:100"
+      -noReplyEmail "${NO_REPLY_EMAIL}"
+      -websiteURL "http://${HOST_IP}"
+      -emailAuthMethod "${EMAIL_AUTH_METHOD}"
+      -emailHost "${EMAIL_HOST}"
+      -emailPort "${EMAIL_PORT}"
+      -emailUsername "${EMAIL_USERNAME}"
+      -emailPassword "${EMAIL_PASSWORD}"
+      -emailIdentity "${EMAIL_IDENTITY}"
+      -emailTrace "${EMAIL_TRACE}"
+      -emailOauthToken "${EMAIL_OAUTH_TOKEN}"
+      -emailClientHostname "${EMAIL_CLIENT_HOSTNAME}"
+      -defaultUser "${DEFAULT_USER}"
+      -defaultUserPassword "${DEFAULT_USER_PASSWORD}"
+      -defaultUserEmail "${DEFAULT_USER_EMAIL}"
+      -metricsHost "eventsapi.dolthub.com"
+      -migrateUp
+      ${DOLTLABAPI_EXTRA_OPTIONS:-}
+  doltlabgraphql:
+    restart: always
+  doltlabui:
+    environment:
+      EVENTSAPI_URL: "https://eventsapi.dolthub.com"
+  doltsqlserver:
+    build:
+      context: .
+      args:
+        VERSION: ${IMG_TAG:?Required IMG_TAG env variable}
+      dockerfile: Dockerfile
+    restart: always
+    command: sql-server --config /etc/mysql/sql-server.cnf
+    ports:
+      - '${MYSQL_SERVER:-3306}:3306'
+    volumes:
+      - dolt-sql-server:/home/test
+      - ./sql-server.cnf:/etc/mysql/sql-server.cnf
+    working_dir: /home/test
+    networks:
+      - doltlab
+volumes:
+  dolt-sql-server: {}

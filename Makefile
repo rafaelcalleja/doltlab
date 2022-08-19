@@ -1,7 +1,10 @@
 CURRENT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
+VERSION ?= v0.5.8
+RELEASE_URL := https://doltlab-releases.s3.amazonaws.com/linux/amd64/doltlab-$(VERSION).zip
+
 ENV_FILE ?= .env.local
-DOCKER_COMPOSE := ENV_FILE=$(CURRENT_DIR)$(ENV_FILE) docker-compose --env-file $(CURRENT_DIR)$(ENV_FILE)
+DOCKER_COMPOSE := ENV_FILE=$(CURRENT_DIR)$(ENV_FILE) docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml --env-file $(CURRENT_DIR)$(ENV_FILE)
 MYSQL_SERVER ?= 3306
 
 include $(ENV_FILE)
@@ -55,3 +58,6 @@ image:
 push:
 	docker push $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG)
 
+download:
+	curl -L $(RELEASE_URL) -o doltlab-latest.zip
+	unzip -o doltlab-latest.zip -d .
