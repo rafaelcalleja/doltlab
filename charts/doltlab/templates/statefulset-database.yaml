@@ -1,0 +1,78 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "doltlab.fullname" . }}-database
+  labels:
+    app: database
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  serviceName: postgres-service
+  replicas: {{ .Values.database.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "doltlab.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: database
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "doltlab.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app: database
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.images.database }}:{{ .Values.images.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.database.internalPort }}
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command: [ "psql", "-w", "-U", "{{ .Values.database.env.POSTGRES_USER }}", "-d", "dolthubapi", "-c", "SELECT 1" ]
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command: [ "psql", "-w", "-U", "{{ .Values.database.env.POSTGRES_USER }}", "-d", "dolthubapi", "-c", "SELECT 1" ]
+            initialDelaySeconds: 45
+            timeoutSeconds: 2
+          volumeMounts:
+            - name: postgres-disk
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+          env:
+          {{- range $pkey, $pval := .Values.database.env }}
+          - name: {{ $pkey }}
+            value: {{ $pval }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-disk
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi

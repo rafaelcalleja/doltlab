@@ -1,0 +1,108 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "doltlab.fullname" . }}-remote-api
+  labels:
+    app: remote-api
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  serviceName: remote-api-service
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "doltlab.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: remote-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "doltlab.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app: remote-api
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.images.remoteApi }}:{{ .Values.images.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{ if .Values.remoteApi.ingress.http.host }}
+            - -http-host
+            - "{{ .Values.remoteApi.ingress.http.host }}:80"
+            {{ else if .Values.webUi.env.HOST_IP }}
+            - -http-host
+            - "{{ .Values.webUi.env.HOST_IP }}:100"
+            {{ end }}
+            - -http-port
+            - "100"
+            - -outboundInternalServiceEndpointHost
+            - {{ include "doltlab.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local
+            {{ if .Values.remoteApi.ingress.http.host }}
+            {{ else if .Values.webUi.env.HOST_IP }}
+            - -backingStoreHostNameOverrideKey
+            - "{{ .Values.webUi.env.HOST_IP }}:100"
+            {{ end }}
+            - -backingStoreHostNameOverrideValue
+            - "{{ include "doltlab.fullname" . }}-remote-api.{{ .Release.Namespace }}.svc.cluster.local:100"
+            - -backing-store
+            - local
+            - -dir
+            - /storage
+            - -metricsHost
+            - "eventsapi.dolthub.com"
+            - -doltlab
+          ports:
+            - name: http
+              containerPort: {{ .Values.remoteApi.internalPort }}
+              protocol: TCP
+            - name: service
+              containerPort: 50051
+              protocol: TCP
+            - name: metrics
+              containerPort: 50091
+              protocol: TCP
+          #livenessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          env:
+          {{- range $pkey, $pval := .Values.remoteApi.env }}
+          - name: {{ $pkey }}
+            value: {{ $pval|quote }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: {{ include "doltlab.fullname" . }}-remote-api-disk
+              mountPath: /storage
+              subPath: doltlab
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ include "doltlab.fullname" . }}-remote-api-disk
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi

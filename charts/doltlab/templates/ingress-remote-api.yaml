@@ -1,0 +1,67 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+{{- if .Values.remoteApi.ingress.http.host -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "doltlab.fullname" . }}-remote-api-http
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+  {{- with .Values.remoteApi.ingress.http.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.remoteApi.ingress.http.host }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ .Values.remoteApi.ingress.http.service }}
+                port:
+                  name: {{ .Values.remoteApi.ingress.http.portName }}
+            path: /
+            pathType: ImplementationSpecific
+{{ if .Values.remoteApi.ingress.http.tlsSecretName }}
+  tls:
+    - hosts:
+        - {{ .Values.remoteApi.ingress.http.host }}
+      secretName: {{ .Values.remoteApi.ingress.http.tlsSecretName }}
+{{- end }}
+
+---
+
+{{- end }}
+{{- if .Values.remoteApi.ingress.grpc.host -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "doltlab.fullname" . }}-remote-api-grpc
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+  {{- with .Values.remoteApi.ingress.grpc.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.remoteApi.ingress.grpc.host }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ .Values.remoteApi.ingress.grpc.service }}
+                port:
+                  name: {{ .Values.remoteApi.ingress.grpc.portName }}
+            path: /
+            pathType: ImplementationSpecific
+{{ if .Values.remoteApi.ingress.grpc.tlsSecretName }}
+  tls:
+    - hosts:
+        - {{ .Values.remoteApi.ingress.grpc.host }}
+      secretName: {{ .Values.remoteApi.ingress.grpc.tlsSecretName }}
+{{- end }}
+
+---
+
+{{- end }}

@@ -1,0 +1,96 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "doltlab.fullname" . }}-file-service
+  labels:
+    app: file-service
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  serviceName: file-service-service
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "doltlab.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: file-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "doltlab.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app: file-service
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.images.fileServiceApi }}:{{ .Values.images.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{ if and .Values.proxy.ingress.fileService.host .Values.proxy.ingress.fileService.tlsSecretName }}
+            - -no-auth
+            {{ end }}
+            - -outboundInternalServiceEndpointHost
+            - {{ include "doltlab.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local
+            - -iterTokenEncKeysFile 
+            - /iter_token.keys
+            - -iterTokenDecKeysFile 
+            - /iter_token.keys
+            - -dir 
+            - /storage
+            - -doltlab
+          ports:
+            - name: http
+              containerPort: {{ .Values.fileServiceApi.internalPort }}
+              protocol: TCP
+          #livenessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          env:
+          {{- range $pkey, $pval := .Values.fileServiceApi.env }}
+          - name: {{ $pkey }}
+            value: {{ $pval|quote }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: {{ include "doltlab.fullname" . }}-file-service-disk
+              mountPath: /storage
+              subPath: doltlab
+            - name: config-volume
+              mountPath: /iter_token.keys
+              subPath: iter_token.keys
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "doltlab.fullname" . }}-cm
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ include "doltlab.fullname" . }}-file-service-disk
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi

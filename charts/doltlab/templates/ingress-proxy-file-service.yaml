@@ -1,0 +1,31 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+{{- if .Values.proxy.ingress.fileService.host -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "doltlab.fullname" . }}-proxy-file-service
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+  {{- with .Values.proxy.ingress.fileService.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.proxy.ingress.fileService.host }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ .Values.proxy.ingress.fileService.service }}
+                port:
+                  name: {{ .Values.proxy.ingress.fileService.portName }}
+            path: /
+            pathType: ImplementationSpecific
+{{ if .Values.proxy.ingress.fileService.tlsSecretName }}
+  tls:
+    - hosts:
+        - {{ .Values.proxy.ingress.fileService.host }}
+      secretName: {{ .Values.proxy.ingress.fileService.tlsSecretName }}
+{{- end }}
+{{- end }}

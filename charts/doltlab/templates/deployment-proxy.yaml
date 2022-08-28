@@ -1,0 +1,95 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "doltlab.fullname" . }}-proxy
+  labels:
+    app: proxy
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.proxy.replicaCount }}
+  selector:
+    matchLabels:
+      app: proxy
+      app.kubernetes.io/name: {{ include "doltlab.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: proxy
+        app.kubernetes.io/name: {{ include "doltlab.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ template "doltlab.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.proxy.image }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.proxy.internalPort }}
+              protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.proxy.grpcInternalPort }}
+              protocol: TCP
+            - name: file-service
+              containerPort: 4321
+              protocol: TCP
+            - name: metrics
+              containerPort: 7770
+              protocol: TCP
+            - name: network
+              containerPort: 10000
+              protocol: TCP
+            - name: https
+              containerPort: 9443
+              protocol: TCP
+            - name: graphql
+              containerPort: 10080
+              protocol: TCP
+            - name: admin
+              containerPort: 9901
+              protocol: TCP
+          #livenessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          env:
+          {{- range $pkey, $pval := .Values.proxy.env }}
+          - name: {{ $pkey }}
+            value: {{ $pval }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/envoy/envoy.yaml
+              subPath: envoy.yaml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "doltlab.fullname" . }}-cm
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

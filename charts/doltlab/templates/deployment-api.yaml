@@ -1,0 +1,184 @@
+{{ $_ := set . "Values" (fromYaml (include "common.tplvalues.render" ( dict "value" .Values "context" $ ))) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "doltlab.fullname" . }}-api
+  labels:
+    app: api
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "doltlab.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "doltlab.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app: api
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ template "doltlab.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.images.api }}:{{ .Values.images.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - -doltlab
+            - -outboundInternalServiceEndpointHost
+            - {{ include "doltlab.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local
+            - -iterTokenEncKeysFile
+            - /iter_token.keys
+            - -iterTokenDecKeysFile
+            - /iter_token.keys
+            - -postgres
+            - -processAsyncTasks
+            - -dolthubWhitelistAllowAll
+            - -port
+            - "{{ .Values.api.internalPort }}"
+            - -pghost
+            - {{ include "doltlab.fullname" . }}-database.{{ .Release.Namespace }}.svc.cluster.local
+            {{ if and .Values.proxy.ingress.fileService.host .Values.proxy.ingress.fileService.tlsSecretName }}
+            - -userImportUploadsFileServiceBrowserHost
+            - "https://{{ .Values.proxy.ingress.fileService.host }}"
+            {{ else if .Values.proxy.ingress.fileService.host }}
+            - -userImportUploadsFileServiceBrowserHost
+            - "http://{{ .Values.proxy.ingress.fileService.host }}"
+            {{ else if .Values.webUi.env.HOST_IP }}
+            - -userImportUploadsFileServiceBrowserHost
+            - "http://{{ .Values.webUi.env.HOST_IP }}:4321"
+            {{ end }}
+            - -userImportUploadsFileServiceServerHost
+            - "http://{{ include "doltlab.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local:4321"
+            {{ if .Values.remoteApi.ingress.http.host }}
+            - -remoteApiHostNameOverrideKey
+            - "{{ .Values.remoteApi.ingress.http.host }}:80"
+            {{ else if .Values.webUi.env.HOST_IP }}
+            - -remoteApiHostNameOverrideKey
+            - "{{ .Values.webUi.env.HOST_IP }}:100"
+            {{ end }}
+            - -remoteApiHostNameOverrideValue
+            - "{{ include "doltlab.fullname" . }}-remote-api.{{ .Release.Namespace }}.svc.cluster.local:100"
+            {{ if .Values.api.env.NO_REPLY_EMAIL }}
+            - -noReplyEmail
+            - "{{ .Values.api.env.NO_REPLY_EMAIL }}"
+            {{ end }}
+            {{ if .Values.webUi.env.HOST_IP }}
+            - -websiteURL
+            - "{{ .Values.webUi.env.HOST_IP }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_AUTH_METHOD }}
+            - -emailAuthMethod
+            - "{{ .Values.api.env.EMAIL_AUTH_METHOD }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_HOST }}
+            - -emailHost
+            - "{{ .Values.api.env.EMAIL_HOST }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_PORT }}
+            - -emailPort
+            - "{{ .Values.api.env.EMAIL_PORT }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_USERNAME }}
+            - -emailUsername
+            - "{{ .Values.api.env.EMAIL_USERNAME }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_PASSWORD }}
+            - -emailPassword
+            - "{{ .Values.api.env.EMAIL_PASSWORD }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_IDENTITY }}
+            - -emailIdentity
+            - "{{ .Values.api.env.EMAIL_IDENTITY }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_TRACE }}
+            - -emailTrace
+            - "{{ .Values.api.env.EMAIL_TRACE }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_OAUTH_TOKEN }}
+            - -emailOauthToken
+            - "{{ .Values.api.env.EMAIL_OAUTH_TOKEN }}"
+            {{ end }}
+            {{ if .Values.api.env.EMAIL_CLIENT_HOSTNAME }}
+            - -emailClientHostname
+            - "{{ .Values.api.env.EMAIL_CLIENT_HOSTNAME }}"
+            {{ end }}
+            {{ if .Values.api.env.DEFAULT_USER }}
+            - -defaultUser
+            - "{{ .Values.api.env.DEFAULT_USER }}"
+            {{ end }}
+            {{ if .Values.api.env.DEFAULT_USER_PASSWORD }}
+            - -defaultUserPassword
+            - "{{ .Values.api.env.DEFAULT_USER_PASSWORD }}"
+            {{ end }}
+            {{ if .Values.api.env.DEFAULT_USER_EMAIL }}
+            - -defaultUserEmail
+            - "{{ .Values.api.env.DEFAULT_USER_EMAIL }}"
+            {{ end }}
+            {{ if .Values.api.env.DOLTLABAPI_EXTRA_OPTIONS }}
+            - "{{ .Values.api.env.DOLTLABAPI_EXTRA_OPTIONS }}"
+            {{ end }}
+            {{ if .Values.api.env.DOLTLABAPI_BASE_URL }}
+            -dolthubapi.BaseURL
+            - "{{ .Values.api.env.DOLTLABAPI_BASE_URL }}"
+            {{ end }}
+            - -metricsHost
+            - "eventsapi.dolthub.com"
+            - -migrateUp
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.internalPort }}
+              protocol: TCP
+            - name: csv
+              containerPort: 60052
+              protocol: TCP
+            - name: metrics
+              containerPort: 50091
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command: [ "/grpc-health-probe", "-addr", "127.0.0.1:{{ .Values.api.internalPort }}" ]
+            initialDelaySeconds: 45
+            timeoutSeconds: 2
+          readinessProbe:
+            exec:
+              command: [ "/grpc-health-probe", "-addr", "127.0.0.1:{{ .Values.api.internalPort }}" ]
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+          env:
+          {{- range $pkey, $pval := .Values.api.env }}
+          - name: {{ $pkey }}
+            value: {{ $pval|quote }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /iter_token.keys
+              subPath: iter_token.keys
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "doltlab.fullname" . }}-cm
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

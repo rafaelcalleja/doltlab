@@ -1,0 +1,181 @@
+# Default values for doltlab.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+images:
+  tag: v0.5.8
+  webUi: public.ecr.aws/dolthub/doltlab/dolthub-server
+  api: public.ecr.aws/dolthub/doltlab/dolthubapi-server
+  remoteApi: public.ecr.aws/dolthub/doltlab/doltremoteapi-server
+  fileServiceApi: public.ecr.aws/dolthub/doltlab/fileserviceapi-server
+  graphql: public.ecr.aws/dolthub/doltlab/dolthubapi-graphql-server
+  database: public.ecr.aws/dolthub/doltlab/postgres-server
+
+proxy:
+  ingress:
+    http:
+      host: ~
+      service: '{{ include "doltlab.fullname" . }}-proxy'
+      portName: http
+      tlsSecretName: ~
+      annotations: {}
+    fileService:
+      host: ~
+      service: '{{ include "doltlab.fullname" . }}-proxy'
+      portName: file-service
+      tlsSecretName: ~
+      annotations: {}
+  image: envoyproxy/envoy-alpine:v1.18-latest
+  replicaCount: 1
+  internalPort: 80
+  servicePort: 80
+  grpcInternalPort: 9480
+  grpcServicePort: 9480
+  env: ~
+  service:
+    type: ClusterIP
+
+
+webUi:
+  internalPort: 3000
+  servicePort: 3000
+  service:
+    type: ClusterIP
+  replicaCount: 1
+  env:
+    NODE_ENV: "production"
+    NODE_OPTIONS: "--max-old-space-size=16384"
+    DOLTHUB_VERSION: "doltlab-{{ .Values.images.tag }}"
+    STRIPE_API_KEY: ""
+    HOST_IP: ""
+
+api:
+  token: ""
+  replicaCount: 1
+  internalPort: 60051
+  servicePort: 60051
+  service:
+    type: ClusterIP
+  env:
+    BUILD_SCM_REVISION: "doltlab-dolthubapi-{{ .Values.images.tag }}"
+    MAILCHIMP_LIST_ID: ""
+    MAILCHIMP_API_KEY: ""
+    STRIPE_API_KEY: ""
+    DOLTHUBAPI_PASSWORD: ""
+    EMAIL_USERNAME: ""
+    EMAIL_PASSWORD: ""
+    EMAIL_PORT: ""
+    EMAIL_HOST: ""
+    #options are plain, login, anonymous, external, oauthbearer, or disable.
+    EMAIL_AUTH_METHOD: ""
+    EMAIL_IDENTITY: ""
+    EMAIL_TRACE: ""
+    EMAIL_OAUTH_TOKEN: ""
+    EMAIL_CLIENT_HOSTNAME: "localhost"
+    NO_REPLY_EMAIL: ""
+    DEFAULT_USER: ""
+    DEFAULT_USER_PASSWORD: ""
+    DEFAULT_USER_EMAIL: ""
+    DOLTLABAPI_EXTRA_OPTIONS: ""
+    DOLTLABAPI_BASE_URL: ""
+    CLONE_REMOTE_HOST: ""
+
+remoteApi:
+  replicaCount: 1
+  internalPort: 100
+  servicePort: 100
+  service:
+    type: ClusterIP
+  ingress:
+    http:
+      host: ~
+      service: '{{ include "doltlab.fullname" . }}-remote-api'
+      portName: http
+      tlsSecretName: ~
+      annotations: {}
+    grpc:
+      host: ~
+      service: '{{ include "doltlab.fullname" . }}-remote-api'
+      portName: service
+      tlsSecretName: ~
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+        nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+fileServiceApi:
+  replicaCount: 1
+  internalPort: 60055
+  servicePort: 60055
+  service:
+    type: ClusterIP
+  env:
+    BUILD_SCM_REVISION: "doltlabfileserviceapi-{{ .Values.images.tag }}"
+
+graphql:
+  internalPort: 9000
+  servicePort: 9000
+  service:
+    type: ClusterIP
+  replicaCount: 1
+  env:
+    DOLTHUBAPI_URL: http://{{ include "doltlab.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local:9443
+    NODE_ENV: production
+
+database:
+  internalPort: 5432
+  servicePort: 5432
+  replicaCount: 1
+  env:
+    POSTGRES_PASSWORD: ""
+    POSTGRES_USER: ""
+    DOLTHUBAPI_PASSWORD: "{{ .Values.api.env.DOLTHUBAPI_PASSWORD }}"
+  service:
+    type: ClusterIP
+
+image:
+  repository: nginx
+  tag: stable
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

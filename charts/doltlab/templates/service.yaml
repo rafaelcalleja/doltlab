@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-proxy
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.proxy.service.type }}
+  ports:
+    - port: {{ .Values.proxy.servicePort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.proxy.grpcServicePort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: 4321
+      targetPort: file-service
+      protocol: TCP
+      name: file-service
+    - port: 7770
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    - port: 10000
+      targetPort: network
+      protocol: TCP
+      name: network
+    - port: 9443
+      targetPort: https
+      protocol: TCP
+      name: https
+    - port: 10080
+      targetPort: graphql
+      protocol: TCP
+      name: graphql
+    - port: 9901
+      targetPort: admin
+      protocol: TCP
+      name: admin
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: proxy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-database
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.database.service.type }}
+  ports:
+    - port: {{ .Values.database.servicePort }}
+      targetPort: postgres
+      protocol: TCP
+      name: grpc
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: database
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-remote-api
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.remoteApi.service.type }}
+  ports:
+    - port: {{ .Values.remoteApi.servicePort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 50051
+      targetPort: service
+      protocol: TCP
+      name: service
+    - port: 50091
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: remote-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-api
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - port: {{ .Values.api.servicePort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 60052
+      targetPort: csv
+      protocol: TCP
+      name: csv
+    - port: 50091
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-webui
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.webUi.service.type }}
+  ports:
+    - port: {{ .Values.webUi.servicePort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: webui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-file-service
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.fileServiceApi.service.type }}
+  ports:
+    - port: {{ .Values.fileServiceApi.servicePort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: file-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "doltlab.fullname" . }}-graphql
+  labels:
+{{ include "doltlab.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.graphql.service.type }}
+  ports:
+    - port: {{ .Values.graphql.servicePort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "doltlab.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: graphql
