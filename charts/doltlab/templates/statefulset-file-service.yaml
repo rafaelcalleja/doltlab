@@ -32,9 +32,6 @@ spec:
           image: "{{ .Values.images.fileServiceApi }}:{{ .Values.images.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            {{ if and .Values.proxy.ingress.fileService.host .Values.proxy.ingress.fileService.tlsSecretName }}
-            - -no-auth
-            {{ end }}
             - -outboundInternalServiceEndpointHost
             - {{ include "doltlab.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local
             - -iterTokenEncKeysFile 

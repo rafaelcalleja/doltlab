@@ -22,6 +22,13 @@ spec:
                   name: {{ .Values.proxy.ingress.http.portName }}
             path: /
             pathType: ImplementationSpecific
+          - backend:
+              service:
+                name: {{ .Values.proxy.ingress.fileService.service }}
+                port:
+                  name: {{ .Values.proxy.ingress.fileService.portName }}
+            path: /users
+            pathType: ImplementationSpecific
 {{ if .Values.proxy.ingress.http.tlsSecretName }}
   tls:
     - hosts:

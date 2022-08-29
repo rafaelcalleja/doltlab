@@ -20,11 +20,11 @@ proxy:
       tlsSecretName: ~
       annotations: {}
     fileService:
-      host: ~
+      host: "{{ .Values.proxy.ingress.http.host }}"
       service: '{{ include "doltlab.fullname" . }}-proxy'
       portName: file-service
-      tlsSecretName: ~
-      annotations: {}
+      tlsSecretName: "{{ .Values.proxy.ingress.http.tlsSecretName }}"
+      annotations: "{{ .Values.proxy.ingress.http.annotations }}"
   image: envoyproxy/envoy-alpine:v1.18-latest
   replicaCount: 1
   internalPort: 80
