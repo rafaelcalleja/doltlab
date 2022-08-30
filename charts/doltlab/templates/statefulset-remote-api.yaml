@@ -83,9 +83,14 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- if not .Values.remoteApi.persistence.enabled }}
+            - name: {{ include "doltlab.fullname" . }}-remote-api-disk
+              emptyDir: {}
+            {{ else }}
             - name: {{ include "doltlab.fullname" . }}-remote-api-disk
               mountPath: /storage
               subPath: doltlab
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -98,11 +103,31 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+  {{- if .Values.remoteApi.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: {{ include "doltlab.fullname" . }}-remote-api-disk
+        {{- with .Values.remoteApi.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes: [ {{ .Values.remoteApi.persistence.accessMode }} ]
         resources:
           requests:
-            storage: 1Gi
+            storage: {{ .Values.remoteApi.persistence.size }}
+        {{- if .Values.remoteApi.persistence.selector }}
+        {{- with .Values.remoteApi.persistence.selector.matchLabels }}
+        selector:
+          matchLabels:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- end }}
+      {{- if .Values.remoteApi.persistence.storageClass }}
+      {{- if (eq "-" .Values.remoteApi.persistence.storageClass) }}
+        storageClassName: ""
+      {{- else }}
+        storageClassName: "{{ .Values.remoteApi.persistence.storageClass }}"
+      {{- end }}
+      {{- end }}
+  {{- end }}

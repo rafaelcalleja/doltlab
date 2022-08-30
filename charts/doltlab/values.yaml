@@ -109,6 +109,20 @@ remoteApi:
       annotations:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
         nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+  persistence:
+    enabled: true
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    # annotations: {}
+    # selector:
+    #  matchLabels: {}
+    accessMode: "ReadWriteOnce"
+    size: 1Gi
 fileServiceApi:
   replicaCount: 1
   internalPort: 60055
@@ -117,6 +131,20 @@ fileServiceApi:
     type: ClusterIP
   env:
     BUILD_SCM_REVISION: "doltlabfileserviceapi-{{ .Values.images.tag }}"
+  persistence:
+    enabled: true
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    # annotations: {}
+    # selector:
+    #  matchLabels: {}
+    accessMode: "ReadWriteOnce"
+    size: 1Gi
 
 graphql:
   internalPort: 9000
@@ -138,6 +166,20 @@ database:
     DOLTHUBAPI_PASSWORD: "{{ .Values.api.env.DOLTHUBAPI_PASSWORD }}"
   service:
     type: ClusterIP
+  persistence:
+    enabled: true
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    # annotations: {}
+    # selector:
+    #  matchLabels: {}
+    accessMode: "ReadWriteOnce"
+    size: 1Gi
 
 image:
   repository: nginx

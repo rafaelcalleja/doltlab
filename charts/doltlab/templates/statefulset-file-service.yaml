@@ -61,9 +61,14 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- if not .Values.fileServiceApi.persistence.enabled }}
+            - name: {{ include "doltlab.fullname" . }}-file-service-disk
+              emptyDir: {}
+            {{ else }}
             - name: {{ include "doltlab.fullname" . }}-file-service-disk
               mountPath: /storage
               subPath: doltlab
+            {{- end }}
             - name: config-volume
               mountPath: /iter_token.keys
               subPath: iter_token.keys
@@ -83,11 +88,31 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+  {{- if .Values.fileServiceApi.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: {{ include "doltlab.fullname" . }}-file-service-disk
+        {{- with .Values.fileServiceApi.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes: [ {{ .Values.fileServiceApi.persistence.accessMode }} ]
         resources:
           requests:
-            storage: 1Gi
+            storage: {{ .Values.fileServiceApi.persistence.size }}
+        {{- if .Values.fileServiceApi.persistence.selector }}
+        {{- with .Values.fileServiceApi.persistence.selector.matchLabels }}
+        selector:
+          matchLabels:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- end }}
+      {{- if .Values.fileServiceApi.persistence.storageClass }}
+      {{- if (eq "-" .Values.fileServiceApi.persistence.storageClass) }}
+        storageClassName: ""
+      {{- else }}
+        storageClassName: "{{ .Values.fileServiceApi.persistence.storageClass }}"
+      {{- end }}
+      {{- end }}
+  {{- end }}

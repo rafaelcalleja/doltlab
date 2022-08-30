@@ -46,9 +46,14 @@ spec:
             initialDelaySeconds: 45
             timeoutSeconds: 2
           volumeMounts:
+            {{- if not .Values.database.persistence.enabled }}
+            - name: postgres-disk
+              emptyDir: {}
+            {{ else }}
             - name: postgres-disk
               mountPath: /var/lib/postgresql/data
               subPath: postgres
+            {{- end }}
           env:
           {{- range $pkey, $pval := .Values.database.env }}
           - name: {{ $pkey }}
@@ -68,11 +73,31 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if .Values.database.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: postgres-disk
+        {{- with .Values.database.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes: [ {{ .Values.database.persistence.accessMode }} ]
         resources:
           requests:
-            storage: 1Gi
+            storage: {{ .Values.database.persistence.size }}
+        {{- if .Values.database.persistence.selector }}
+        {{- with .Values.database.persistence.selector.matchLabels }}
+        selector:
+          matchLabels:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- end }}
+      {{- if .Values.database.persistence.storageClass }}
+      {{- if (eq "-" .Values.database.persistence.storageClass) }}
+        storageClassName: ""
+      {{- else }}
+        storageClassName: "{{ .Values.database.persistence.storageClass }}"
+      {{- end }}
+      {{- end }}
+  {{- end }}
