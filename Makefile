@@ -11,7 +11,7 @@ include $(ENV_FILE)
 export
 
 IMG_REPO ?= rafaelcalleja
-IMG_TAG ?= v0.40.30
+IMG_TAG ?= v0.40.32
 IMG_NAME ?= dolt
 
 .PHONY: all
