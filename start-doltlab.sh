@@ -47,8 +47,14 @@ check_oauthbearer_auth_env() {
 }
 
 create_token_keys() {
-  chmod +x ./gentokenenckey
-  ./gentokenenckey > iter_token.keys
+    chmod +x ./gentokenenckey
+    create_token_keys_for_service "doltlabremoteapi"
+    create_token_keys_for_service "doltlabapi"
+    create_token_keys_for_service "doltlabfileserviceapi"
+}
+
+create_token_keys_for_service() {
+  ./gentokenenckey > "$1"_iter_token.keys
 }
 
 create_envoy_config() {
@@ -68,7 +74,7 @@ start_services() {
 
 send_usage_metrics() {
   chmod +x send_doltlab_deployed_event
-  ./send_doltlab_deployed_event --version v0.5.8
+  ./send_doltlab_deployed_event --version v0.5.9
 }
 
 set_env() {
