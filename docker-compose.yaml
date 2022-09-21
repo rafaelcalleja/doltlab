@@ -67,7 +67,7 @@ services:
     networks:
       - doltlab
     volumes:
-      - ${PWD}/iter_token.keys:/iter_token.keys
+      - ${PWD}/doltlabremoteapi_iter_token.keys:/iter_token.keys
       - doltlab-remote-storage:/doltlab-remote-storage
   doltlabapi:
     depends_on:
@@ -115,7 +115,7 @@ services:
       STRIPE_API_KEY: does_not_work
       DOLTHUBAPI_PASSWORD: "${DOLTHUBAPI_PASSWORD}"
     volumes:
-      - ${PWD}/iter_token.keys:/iter_token.keys
+      - ${PWD}/doltlabapi_iter_token.keys:/iter_token.keys
   doltlabgraphql:
     depends_on:
       - doltlabdb
@@ -149,9 +149,8 @@ services:
     networks:
       - doltlab
 networks:
-    doltlab:
+  doltlab:
 volumes:
   doltlab-remote-storage: {}
   doltlabdb-data: {}
   doltlab-user-uploads: {}
-
