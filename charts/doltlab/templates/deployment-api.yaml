@@ -165,7 +165,7 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /iter_token.keys
-              subPath: iter_token.keys
+              subPath: api_iter_token.keys
       volumes:
         - name: config-volume
           configMap:

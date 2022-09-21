@@ -52,6 +52,10 @@ spec:
             - "{{ include "doltlab.fullname" . }}-remote-api.{{ .Release.Namespace }}.svc.cluster.local:100"
             - -backing-store
             - local
+            - -repoTokenEncKeysFile 
+            - /iter_token.keys
+            - -repoTokenDecKeysFile 
+            - /iter_token.keys
             - -dir
             - /storage
             - -metricsHost
@@ -91,6 +95,13 @@ spec:
               mountPath: /storage
               subPath: doltlab
             {{- end }}
+            - name: config-volume
+              mountPath: /iter_token.keys
+              subPath: remoteApi_iter_token.keys
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "doltlab.fullname" . }}-cm
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

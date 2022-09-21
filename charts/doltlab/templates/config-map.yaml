@@ -6,8 +6,12 @@ metadata:
   labels:
 {{ include "doltlab.labels" . | indent 4 }}
 data:
-  iter_token.keys: |
+  api_iter_token.keys: |
     {{ .Values.api.token }}
+  remoteApi_iter_token.keys: |
+    {{ .Values.remoteApi.token }}
+  fileServiceApi_iter_token.keys: |
+    {{ .Values.fileServiceApi.token }}
   envoy.yaml: |
     admin:
       access_log_path: /tmp/admin_access.log

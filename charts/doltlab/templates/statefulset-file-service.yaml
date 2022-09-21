@@ -71,7 +71,7 @@ spec:
             {{- end }}
             - name: config-volume
               mountPath: /iter_token.keys
-              subPath: iter_token.keys
+              subPath: fileServiceApi_iter_token.keys
       volumes:
         - name: config-volume
           configMap:
