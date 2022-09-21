@@ -1,5 +1,5 @@
 .env*
-iter_token.keys
+*iter_token.keys
 envoy.yaml
 .idea
 .dolt
