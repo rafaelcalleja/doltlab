@@ -39,7 +39,7 @@ clean: stop
 .PHONY: destroy
 destroy:
 	@$(DOCKER_COMPOSE) down --rmi local -v
-	@rm iter_token.keys envoy.yaml || true
+	@rm -f *_iter_token.keys envoy.yaml || true
 
 .PHONY: logs
 logs:
@@ -49,7 +49,9 @@ create_envoy_config:
 	@docker run -w /src -v $(CURRENT_DIR):/src --rm -e HOST_IP=$(HOST_IP) rafaelcalleja/envsubst:0.0.0 "envsubst '\$$\$${HOST_IP}' < envoy.tmpl" > envoy.yaml
 
 create_token_keys:
-	@test -f iter_token.keys || chmod +x ./gentokenenckey; ./gentokenenckey > iter_token.keys
+	@test -f doltlabfileserviceapi_iter_token.keys || chmod +x ./gentokenenckey; ./gentokenenckey > doltlabfileserviceapi_iter_token.keys
+	@test -f doltlabapi_iter_token.keys || chmod +x ./gentokenenckey; ./gentokenenckey > doltlabapi_iter_token.keys
+	@test -f doltlabremoteapi_iter_token.keys || chmod +x ./gentokenenckey; ./gentokenenckey > doltlabremoteapi_iter_token.keys
 
 image:
 	docker build -t $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG) -f Dockerfile \
