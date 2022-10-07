@@ -61,6 +61,7 @@ spec:
             - -metricsHost
             - "eventsapi.dolthub.com"
             - -doltlab
+            - -allow-nbf-dolt
           ports:
             - name: http
               containerPort: {{ .Values.remoteApi.internalPort }}
