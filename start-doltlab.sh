@@ -74,7 +74,7 @@ start_services() {
 
 send_usage_metrics() {
   chmod +x send_doltlab_deployed_event
-  ./send_doltlab_deployed_event --version v0.5.9
+  ./send_doltlab_deployed_event --version v0.6.0
 }
 
 set_env() {

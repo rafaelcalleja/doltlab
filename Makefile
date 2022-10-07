@@ -1,6 +1,6 @@
 CURRENT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-VERSION ?= v0.5.9
+VERSION ?= v0.6.0
 RELEASE_URL := https://doltlab-releases.s3.amazonaws.com/linux/amd64/doltlab-$(VERSION).zip
 
 ENV_FILE ?= .env.local
@@ -11,7 +11,7 @@ include $(ENV_FILE)
 export
 
 IMG_REPO ?= rafaelcalleja
-IMG_TAG ?= v0.41.5
+IMG_TAG ?= v0.50.1
 IMG_NAME ?= dolt
 
 .PHONY: all

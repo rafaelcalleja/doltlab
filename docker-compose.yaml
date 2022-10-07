@@ -3,7 +3,7 @@
 version: "3.9"  # optional since v1.27.0
 services:
   doltlabdb:
-    image: public.ecr.aws/dolthub/doltlab/postgres-server:v0.5.9
+    image: public.ecr.aws/dolthub/doltlab/postgres-server:v0.6.0
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -27,7 +27,7 @@ services:
   doltlabfileserviceapi:
      depends_on:
         - doltlabenvoy
-     image: public.ecr.aws/dolthub/doltlab/fileserviceapi-server:v0.5.9
+     image: public.ecr.aws/dolthub/doltlab/fileserviceapi-server:v0.6.0
      command:
        -outboundInternalServiceEndpointHost doltlabenvoy
        -iterTokenEncKeysFile /iter_token.keys
@@ -35,7 +35,7 @@ services:
        -dir /doltlab-user-uploads
        -doltlab
      environment:
-       BUILD_SCM_REVISION: doltlabfileserviceapi-v0.5.9
+       BUILD_SCM_REVISION: doltlabfileserviceapi-v0.6.0
      networks:
        - doltlab
      volumes:
@@ -46,7 +46,7 @@ services:
       - doltlabdb
       - doltlabenvoy
       - doltlabfileserviceapi
-    image: public.ecr.aws/dolthub/doltlab/doltremoteapi-server:v0.5.9
+    image: public.ecr.aws/dolthub/doltlab/doltremoteapi-server:v0.6.0
     command:
       -http-host "${HOST_IP}:100"
       -http-port "100"
@@ -59,11 +59,12 @@ services:
       -dir /doltlab-remote-storage
       -metricsHost "eventsapi.dolthub.com"
       -doltlab
+      -allow-nbf-dolt
     ports:
       - "50051:50051"
       - "100:100"
     environment:
-      BUILD_SCM_REVISION: doltlabremoteapi-v0.5.9
+      BUILD_SCM_REVISION: doltlabremoteapi-v0.6.0
     networks:
       - doltlab
     volumes:
@@ -75,7 +76,7 @@ services:
       - doltlabenvoy
       - doltlabremoteapi
       - doltlabfileserviceapi
-    image: public.ecr.aws/dolthub/doltlab/dolthubapi-server:v0.5.9
+    image: public.ecr.aws/dolthub/doltlab/dolthubapi-server:v0.6.0
     command:
       -doltlab
       -outboundInternalServiceEndpointHost doltlabenvoy
@@ -109,7 +110,7 @@ services:
     networks:
       - doltlab
     environment:
-      BUILD_SCM_REVISION: doltlab-dolthubapi-v0.5.9
+      BUILD_SCM_REVISION: doltlab-dolthubapi-v0.6.0
       MAILCHIMP_LIST_ID: does_not_work
       MAILCHIMP_API_KEY: does_not_work
       STRIPE_API_KEY: does_not_work
@@ -123,7 +124,7 @@ services:
       - doltlabremoteapi
       - doltlabapi
       - doltlabfileserviceapi
-    image: public.ecr.aws/dolthub/doltlab/dolthubapi-graphql-server:v0.5.9
+    image: public.ecr.aws/dolthub/doltlab/dolthubapi-graphql-server:v0.6.0
     networks:
       - doltlab
     environment:
@@ -137,10 +138,10 @@ services:
       - doltlabapi
       - doltlabgraphql
       - doltlabfileserviceapi
-    image: public.ecr.aws/dolthub/doltlab/dolthub-server:v0.5.9
+    image: public.ecr.aws/dolthub/doltlab/dolthub-server:v0.6.0
     environment:
       NODE_OPTIONS: "--max-old-space-size=16384"
-      DOLTHUB_VERSION: "doltlab-v0.5.9"
+      DOLTHUB_VERSION: "doltlab-v0.6.0"
       STRIPE_API_KEY: "does_not_work"
       HOST_IP: "${HOST_IP}"
       INTERNAL_GRAPHQLAPI_URL: "http://doltlabenvoy:10080/graphql"
@@ -149,7 +150,7 @@ services:
     networks:
       - doltlab
 networks:
-  doltlab:
+    doltlab:
 volumes:
   doltlab-remote-storage: {}
   doltlabdb-data: {}

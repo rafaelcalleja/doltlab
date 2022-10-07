@@ -5,7 +5,7 @@
 domainUrl: 127.0.0.1.nip.io
 
 images:
-  tag: v0.5.9
+  tag: v0.6.0
   webUi: public.ecr.aws/dolthub/doltlab/dolthub-server
   api: public.ecr.aws/dolthub/doltlab/dolthubapi-server
   remoteApi: public.ecr.aws/dolthub/doltlab/doltremoteapi-server
